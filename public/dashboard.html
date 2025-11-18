@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - UNN Shuttle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/config.js"></script>
+    <script src="js/api-client.js"></script>
+    <script src="js/dashboard.js" defer></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.4);
+        }
+        .balance-card {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            transition: all 0.3s ease;
+        }
+        .balance-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(16, 185, 129, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-md">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-bus text-green-600 text-2xl"></i>
+                    <span class="text-xl font-bold text-gray-800">UNN Shuttle</span>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="dashboard.html" class="text-green-600 font-semibold">Dashboard</a>
+                    <a href="book.html" class="text-gray-600 hover:text-green-600">Book Ride</a>
+                    <a href="index.html" class="text-gray-600 hover:text-green-600">Home</a>
+                    <button id="logoutBtn" class="text-red-600 hover:text-red-700">
+                        <i class="fas fa-sign-out-alt mr-1"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-6 py-8">
+        <!-- Welcome Section -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">
+                Welcome back, <span id="username" class="text-green-600">Student</span>! 👋
+            </h1>
+            <p class="text-gray-600 mt-2">Manage your shuttle bookings and account</p>
+        </div>
+
+        <!-- Balance & Quick Actions -->
+        <div class="grid md:grid-cols-3 gap-6 mb-8">
+            <!-- Balance Card -->
+            <div class="md:col-span-1">
+                <div class="balance-card rounded-2xl shadow-lg p-6 text-white">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Balance</h3>
+                        <i class="fas fa-wallet text-2xl opacity-80"></i>
+                    </div>
+                    <div class="text-3xl font-bold mb-2">₦<span id="balance">0.00</span></div>
+                    <p class="text-sm opacity-90">Available</p>
+                    <div class="mt-4 pt-4 border-t border-white border-opacity-30">
+                        <div class="flex justify-between text-sm">
+                            <span>Last funded:</span>
+                            <span id="lastFunded">Never</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="md:col-span-2">
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Quick Actions</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <button onclick="showFundModal()" class="bg-green-50 p-4 rounded-xl hover:bg-green-100 transition text-center">
+                            <i class="fas fa-plus-circle text-green-600 text-2xl mb-2"></i>
+                            <div class="text-sm font-semibold text-gray-700">Fund Wallet</div>
+                        </button>
+                        <button onclick="window.location.href='book.html'" class="bg-blue-50 p-4 rounded-xl hover:bg-blue-100 transition text-center">
+                            <i class="fas fa-calendar-alt text-blue-600 text-2xl mb-2"></i>
+                            <div class="text-sm font-semibold text-gray-700">Book Ride</div>
+                        </button>
+                        <button class="bg-purple-50 p-4 rounded-xl hover:bg-purple-100 transition text-center">
+                            <i class="fas fa-history text-purple-600 text-2xl mb-2"></i>
+                            <div class="text-sm font-semibold text-gray-700">History</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bookings & Stats -->
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Recent Bookings -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Recent Bookings</h3>
+                <div class="space-y-3">
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-spinner fa-spin text-2xl"></i>
+                        <p class="mt-2">Loading...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Stats -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Statistics</h3>
+                <div class="space-y-4">
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-spinner fa-spin text-2xl"></i>
+                        <p class="mt-2">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fund Modal -->
+    <div id="fundModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 relative">
+            <button onclick="closeFundModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">Fund Your Wallet</h3>
+
+            <form id="fundForm">
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Select Amount</label>
+                    <div class="grid grid-cols-3 gap-3 mb-4">
+                        <button type="button" onclick="setAmount(500)" class="amount-btn p-3 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition">₦500</button>
+                        <button type="button" onclick="setAmount(1000)" class="amount-btn p-3 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition">₦1,000</button>
+                        <button type="button" onclick="setAmount(2000)" class="amount-btn p-3 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition">₦2,000</button>
+                        <button type="button" onclick="setAmount(5000)" class="amount-btn p-3 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition">₦5,000</button>
+                        <button type="button" onclick="setAmount(10000)" class="amount-btn p-3 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition">₦10,000</button>
+                        <button type="button" onclick="setCustomAmount()" class="amount-btn p-3 border-2 border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition">Custom</button>
+                    </div>
+                    <input type="number" id="fundAmount" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-green-500" placeholder="Enter amount" min="100" required>
+                </div>
+
+                <button type="submit" class="w-full btn-primary text-white py-3 rounded-lg font-bold">
+                    <i class="fas fa-credit-card mr-2"></i>
+                    Fund Wallet
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

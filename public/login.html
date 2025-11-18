@@ -6,7 +6,8 @@
     <title>Login - UNN Shuttle</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="api-client.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/api-client.js"></script>
     <style>
         .gradient-bg {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -133,10 +134,10 @@
             try {
                 // Authenticate user using API
                 const user = await api.login(email, password);
-                
+
                 // Login successful
-                alert(`Welcome back, ${user.full_name}!`);
-                
+                alert(`Welcome back, ${user.fullName}!`);
+
                 // Redirect to dashboard
                 window.location.href = 'dashboard.html';
             } catch (error) {

@@ -1,71 +1,49 @@
 const express = require('express');
-const { createClient } = require('@supabase/supabase-js');
+const { supabasePublic } = require('../config/database');
+const { asyncHandler, AppError } = require('../middleware/errorHandler');
+const { validateRouteId } = require('../middleware/validator');
+const { successResponse } = require('../utils/helpers');
+
 const router = express.Router();
 
-// Initialize Supabase
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+/**
+ * @route   GET /api/routes
+ * @desc    Get all active routes
+ * @access  Public
+ */
+router.get('/', asyncHandler(async (_req, res) => {
+  const { data: routes, error } = await supabasePublic
+    .from('routes')
+    .select('*')
+    .eq('is_active', true)
+    .order('name');
 
-// Get all routes
-router.get('/', async (req, res) => {
-    try {
-        console.log('Fetching routes from Supabase...');
-        const { data: routes, error } = await supabase
-            .from('routes')
-            .select('*')
-            .order('route_name'); // Use 'route_name' column which exists in database
+  if (error) {
+    console.error('Routes fetch error:', error);
+    throw new AppError('Failed to fetch routes', 500);
+  }
 
-        console.log('Supabase response:', { routes, error });
+  res.json(successResponse({ routes: routes || [] }));
+}));
 
-        if (error) {
-            console.error('Supabase error:', error);
-            return res.status(500).json({ 
-                success: false, 
-                error: 'Failed to fetch routes: ' + error.message 
-            });
-        }
+/**
+ * @route   GET /api/routes/:id
+ * @desc    Get single route by ID
+ * @access  Public
+ */
+router.get('/:id', validateRouteId, asyncHandler(async (req, res) => {
+  const { data: route, error } = await supabasePublic
+    .from('routes')
+    .select('*')
+    .eq('id', req.params.id)
+    .eq('is_active', true)
+    .single();
 
-        res.json({
-            success: true,
-            routes: routes || []
-        });
-    } catch (error) {
-        console.error('Server error in routes endpoint:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Server error: ' + error.message 
-        });
-    }
-});
+  if (error || !route) {
+    throw new AppError('Route not found', 404);
+  }
 
-// Get route by ID
-router.get('/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        
-        const { data: route, error } = await supabase
-            .from('routes')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (error || !route) {
-            return res.status(404).json({ 
-                success: false, 
-                error: 'Route not found' 
-            });
-        }
-
-        res.json({
-            success: true,
-            route
-        });
-    } catch (error) {
-        console.error('Route error:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Server error' 
-        });
-    }
-});
+  res.json(successResponse({ route }));
+}));
 
 module.exports = router;

@@ -1,69 +1,99 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
-const { createClient } = require('@supabase/supabase-js');
+const { supabaseAdmin } = require('../config/database');
+const { verifyToken } = require('../middleware/auth');
+const { asyncHandler, AppError } = require('../middleware/errorHandler');
+const { successResponse } = require('../utils/helpers');
+
 const router = express.Router();
 
-// Initialize Supabase
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+/**
+ * @route   GET /api/transactions
+ * @desc    Get all user transactions with pagination
+ * @access  Private
+ */
+router.get('/', verifyToken, asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const offset = (page - 1) * limit;
 
-// Middleware to verify JWT token
-const verifyToken = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    
-    if (!token) {
-        return res.status(401).json({ 
-            success: false, 
-            error: 'No token provided' 
-        });
+  const { count } = await supabaseAdmin
+    .from('transactions')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', req.user.id);
+
+  const { data: transactions, error } = await supabaseAdmin
+    .from('transactions')
+    .select(`
+      *,
+      bookings (
+        id,
+        booking_code,
+        pickup_location,
+        dropoff_location,
+        routes (
+          name,
+          origin,
+          destination
+        )
+      )
+    `)
+    .eq('user_id', req.user.id)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    console.error('Transactions fetch error:', error);
+    throw new AppError('Failed to fetch transactions', 500);
+  }
+
+  const totalPages = Math.ceil((count || 0) / limit);
+
+  res.json(successResponse({
+    transactions: transactions || [],
+    pagination: {
+      page,
+      limit,
+      total: count || 0,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
     }
+  }));
+}));
 
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (error) {
-        return res.status(401).json({ 
-            success: false, 
-            error: 'Invalid token' 
-        });
-    }
-};
+/**
+ * @route   GET /api/transactions/:id
+ * @desc    Get single transaction by ID
+ * @access  Private
+ */
+router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
+  const { data: transaction, error } = await supabaseAdmin
+    .from('transactions')
+    .select(`
+      *,
+      bookings (
+        id,
+        booking_code,
+        pickup_location,
+        dropoff_location,
+        departure_time,
+        status,
+        routes (
+          name,
+          origin,
+          destination
+        )
+      )
+    `)
+    .eq('id', req.params.id)
+    .eq('user_id', req.user.id)
+    .single();
 
-// Get user transactions
-router.get('/', verifyToken, async (req, res) => {
-    try {
-        const { data: transactions, error } = await supabase
-            .from('transactions')
-            .select(`
-                *,
-                bookings (
-                    id,
-                    booking_reference,
-                    pickup_location,
-                    dropoff_location
-                )
-            `)
-            .eq('user_id', req.user.userId)
-            .order('created_at', { ascending: false });
+  if (error || !transaction) {
+    throw new AppError('Transaction not found', 404);
+  }
 
-        if (error) {
-            return res.status(500).json({ 
-                success: false, 
-                error: 'Failed to fetch transactions' 
-            });
-        }
-
-        res.json({
-            success: true,
-            transactions: transactions || []
-        });
-    } catch (error) {
-        console.error('Transactions error:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Server error' 
-        });
-    }
-});
+  res.json(successResponse({ transaction }));
+}));
 
 module.exports = router;
