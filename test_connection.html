@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Supabase Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Supabase Connection Test</h1>
+    
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        // Test function
+        async function testConnection() {
+            addResult('Testing API connection...', 'info');
+            
+            try {
+                // Test routes endpoint
+                const response = await fetch('http://localhost:3000/api/routes/');
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    addResult('✓ API connection successful!', 'success');
+                    addResult(`Found ${data.routes.length} routes`, 'success');
+                    if (data.routes.length > 0) {
+                        addResult('Sample route data:', 'info');
+                        addResult('<pre>' + JSON.stringify(data.routes[0], null, 2) + '</pre>', 'info');
+                    }
+                } else {
+                    addResult('✗ API connection failed', 'error');
+                    addResult('Response: ' + JSON.stringify(data), 'error');
+                }
+            } catch (error) {
+                addResult('✗ Connection error: ' + error.message, 'error');
+                addResult('Make sure your PHP server is running and the API is accessible', 'info');
+            }
+            
+            // Test registration endpoint
+            addResult('Testing registration endpoint...', 'info');
+            try {
+                const testUser = {
+                    fullName: 'Test User',
+                    email: 'test' + Date.now() + '@test.com',
+                    studentId: 'TEST' + Date.now(),
+                    password: 'test123'
+                };
+                
+                const regResponse = await fetch('http://localhost:3000/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testUser)
+                });
+                
+                const regData = await regResponse.json();
+                
+                if (regResponse.ok && regData.success) {
+                    addResult('✓ Registration endpoint working!', 'success');
+                    addResult('Test user created successfully', 'success');
+                } else {
+                    addResult('✗ Registration endpoint error: ' + (regData.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                addResult('✗ Registration test failed: ' + error.message, 'error');
+            }
+        }
+        
+        function addResult(message, type) {
+            const div = document.createElement('div');
+            div.className = 'test ' + type;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+        
+        // Run tests when page loads
+        testConnection();
+    </script>
+</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Ride - UNN Shuttle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="api-client.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-md">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-bus text-green-600 text-2xl"></i>
+                    <span class="text-xl font-bold text-gray-800">UNN Shuttle</span>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="dashboard.html" class="text-gray-600 hover:text-green-600">Dashboard</a>
+                    <a href="index.html" class="text-gray-600 hover:text-green-600">Home</a>
+                    <button id="logoutBtn" class="text-red-600 hover:text-red-700">
+                        <i class="fas fa-sign-out-alt mr-1"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Booking Content -->
+    <div class="container mx-auto px-6 py-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8">Book Your Shuttle Ride</h1>
+
+        <div class="grid md:grid-cols-3 gap-8">
+            <!-- Route Selection -->
+            <div class="md:col-span-2">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Available Routes</h2>
+                <div id="routesContainer" class="space-y-4">
+                    <!-- Routes will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Booking Summary -->
+            <div>
+                <div id="bookingSummary">
+                    <div class="bg-white rounded-2xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">Booking Summary</h3>
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-hand-pointer text-4xl mb-4"></i>
+                            <p>Select a route to continue</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let routes = [];
+        let selectedRoute = null;
+
+        // Initialize booking page
+        async function initializeBookingPage() {
+            // Check if user is logged in
+            if (!api.isLoggedIn()) {
+                alert('Please login to book a ride');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                // Get user data
+                currentUser = api.getCurrentUser();
+                
+                // Load routes
+                await loadRoutes();
+            } catch (error) {
+                console.error('Failed to initialize booking page:', error);
+                alert('Failed to load data. Please refresh the page.');
+            }
+        }
+
+        // Load available routes
+        async function loadRoutes() {
+            try {
+                routes = await api.getRoutes();
+                displayRoutes();
+            } catch (error) {
+                console.error('Failed to load routes:', error);
+                const routesContainer = document.getElementById('routesContainer');
+                routesContainer.innerHTML = `
+                    <div class="text-center py-12 text-red-500">
+                        <i class="fas fa-exclamation-triangle text-6xl mb-4"></i>
+                        <p class="text-lg">Failed to load routes. Please try again.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Display routes
+        function displayRoutes() {
+            const routesContainer = document.getElementById('routesContainer');
+            
+            if (routes.length === 0) {
+                routesContainer.innerHTML = `
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fas fa-bus text-6xl mb-4"></i>
+                        <p class="text-lg">No routes available at the moment</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const routesHtml = routes.map(route => `
+                <div class="route-card bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow cursor-pointer border-2 border-transparent hover:border-green-500" 
+                     onclick="selectRoute(${route.id})">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">${route.name}</h3>
+                        <div class="text-2xl font-bold text-green-600">${api.formatCurrency(route.price)}</div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex items-center text-gray-600">
+                            <i class="fas fa-route w-5 text-green-600 mr-3"></i>
+                            <span>${route.description}</span>
+                        </div>
+                        <div class="flex items-center text-gray-600">
+                            <i class="fas fa-clock w-5 text-blue-600 mr-3"></i>
+                            <span>Est. ${route.duration}</span>
+                        </div>
+                        <div class="flex items-center text-gray-600">
+                            <i class="fas fa-bus w-5 text-purple-600 mr-3"></i>
+                            <span>${route.shuttle_type}</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between">
+                        <span class="text-sm text-gray-500">Available seats: <span class="font-bold text-green-600">${route.available_seats}</span></span>
+                        <button class="btn-primary text-white px-4 py-2 rounded-lg text-sm">
+                            Select Route
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            routesContainer.innerHTML = routesHtml;
+        }
+
+        // Select a route
+        function selectRoute(routeId) {
+            selectedRoute = routes.find(r => r.id === routeId);
+            
+            // Update UI to show selected route
+            document.querySelectorAll('.route-card').forEach(card => {
+                card.classList.remove('border-green-500', 'bg-green-50');
+            });
+            
+            event.currentTarget.classList.add('border-green-500', 'bg-green-50');
+            
+            // Update summary
+            updateBookingSummary();
+        }
+
+        // Update booking summary
+        function updateBookingSummary() {
+            if (!selectedRoute) return;
+            
+            const summaryContainer = document.getElementById('bookingSummary');
+            summaryContainer.innerHTML = `
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Booking Summary</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Route:</span>
+                            <span class="font-bold">${selectedRoute.name}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Price:</span>
+                            <span class="font-bold text-green-600">${api.formatCurrency(selectedRoute.price)}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Duration:</span>
+                            <span class="font-bold">${selectedRoute.duration}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Available Seats:</span>
+                            <span class="font-bold">${selectedRoute.available_seats}</span>
+                        </div>
+                        <hr class="my-3">
+                        <div class="flex justify-between text-lg">
+                            <span class="font-bold">Total:</span>
+                            <span class="font-bold text-green-600">${api.formatCurrency(selectedRoute.price)}</span>
+                        </div>
+                    </div>
+                    <button onclick="confirmBooking()" class="w-full btn-primary text-white py-3 rounded-lg font-bold mt-6">
+                        <i class="fas fa-check mr-2"></i>
+                        Confirm Booking
+                    </button>
+                </div>
+            `;
+        }
+
+        // Confirm booking
+        async function confirmBooking() {
+            if (!selectedRoute) {
+                alert('Please select a route first');
+                return;
+            }
+
+            // Check user balance
+            if (currentUser.balance < selectedRoute.price) {
+                alert('Insufficient balance. Please fund your account.');
+                return;
+            }
+
+            // Show loading state
+            const confirmBtn = event.target;
+            const originalText = confirmBtn.innerHTML;
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
+            confirmBtn.disabled = true;
+
+            try {
+                // Create booking
+                const bookingData = {
+                    routeId: selectedRoute.id,
+                    seats: 1,
+                    totalPrice: selectedRoute.price,
+                    paymentMethod: 'Wallet'
+                };
+
+                const result = await api.createBooking(bookingData);
+                
+                // Show success message
+                alert(`Booking confirmed! Your booking code is ${result.booking.booking_code}`);
+                
+                // Redirect to dashboard
+                window.location.href = 'dashboard.html';
+            } catch (error) {
+                alert(error.message || 'Failed to create booking. Please try again.');
+            } finally {
+                // Restore button state
+                confirmBtn.innerHTML = originalText;
+                confirmBtn.disabled = false;
+            }
+        }
+
+        // Initialize page when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initializeBookingPage);
+    </script>
+
+    <script>
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.clear();
+                window.location.href = 'index.html';
+            }
+        });
+
+        // Initialize page when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initializeBookingPage);
+    </script>
+</body>
+</html>
